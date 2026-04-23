@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Review Moderation - TODO FUN</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f9fafb; }
+    .header { background: #000; color: white; padding: 20px; }
+    .header h1 { font-size: 24px; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 30px; }
+    .tabs { display: flex; gap: 10px; margin-bottom: 30px; }
+    .tab { padding: 10px 20px; border: none; background: white; border-radius: 6px; cursor: pointer; font-size: 14px; }
+    .tab.active { background: #000; color: white; }
+    .review-card { background: white; border-radius: 8px; padding: 20px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .review-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px; }
+    .review-meta { display: flex; gap: 15px; align-items: center; }
+    .review-product { font-weight: 600; color: #666; }
+    .review-customer { font-size: 14px; color: #999; }
+    .review-stars { color: #ffa500; font-size: 18px; }
+    .review-verified { background: #22c55e; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; }
+    .review-content { margin: 15px 0; }
+    .review-title { font-weight: 600; margin-bottom: 8px; }
+    .review-text { color: #333; line-height: 1.6; }
+    .review-photos { display: flex; gap: 10px; margin: 15px 0; }
+    .review-photo { width: 120px; height: 120px; object-fit: cover; border-radius: 6px; }
+    .review-actions { display: flex; gap: 10px; }
+    .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+    .btn-approve { background: #22c55e; color: white; }
+    .btn-reject { background: #ef4444; color: white; }
+    .btn:hover { opacity: 0.9; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .empty-state { text-align: center; padding: 60px 20px; color: #999; }
+    .login-form { max-width: 400px; margin: 100px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .login-form h2 { margin-bottom: 20px; }
+    .login-form input { width: 100%; padding: 12px; border: 1px solid #e5e5e5; border-radius: 6px; margin-bottom: 15px; }
+    .login-form button { width: 100%; padding: 12px; background: #000; color: white; border: none; border-radius: 6px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Review Moderation</h1>
+  </div>
+  
+  <div id="login-screen" style="display: none;">
+    <div class="login-form">
+      <h2>Admin Login</h2>
+      <input type="password" id="admin-token" placeholder="Admin Token" autocomplete="current-password">
+      <div id="login-error" style="display:none;color:#ef4444;font-size:13px;margin-bottom:10px;"></div>
+      <button onclick="login()">Login</button>
+    </div>
+  </div>
+  
+  <div id="admin-screen" style="display: none;">
+    <div class="container">
+      <div class="tabs">
+        <button class="tab active" onclick="loadReviews('pending')">Pending</button>
+        <button class="tab" onclick="loadReviews('approved')">Approved</button>
+        <button class="tab" onclick="loadReviews('rejected')">Rejected</button>
+      </div>
+      
+      <div id="reviews-list"></div>
+    </div>
+  </div>
+  
+  <script>
+    const API_URL = window.location.origin;
+    let currentToken = (localStorage.getItem('admin_token') || '').trim();
+    let currentStatus = 'pending';
+    let justLoggedIn = false;
+
+    async function verifyToken(token) {
+      const res = await fetch(`${API_URL}/api/admin/reviews?status=pending`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      return res.status !== 401;
+    }
+
+    async function boot() {
+      if (currentToken) {
+        const ok = await verifyToken(currentToken);
+        if (ok) {
+          document.getElementById('admin-screen').style.display = 'block';
+          loadReviews('pending');
+          return;
+        }
+        // Token invalid — clear and show login (no reload loop)
+        localStorage.removeItem('admin_token');
+        currentToken = '';
+      }
+      document.getElementById('login-screen').style.display = 'block';
+      setTimeout(() => document.getElementById('admin-token')?.focus(), 50);
+    }
+    boot();
+
+    // Enter key submits login
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && document.getElementById('login-screen').style.display !== 'none') {
+        login();
+      }
+    });
+
+    async function login() {
+      const input = document.getElementById('admin-token');
+      const token = (input.value || '').trim();
+      const btn = document.querySelector('.login-form button');
+      const errEl = document.getElementById('login-error');
+      if (!token) {
+        errEl.textContent = 'Please enter admin token';
+        errEl.style.display = 'block';
+        return;
+      }
+      btn.disabled = true;
+      btn.textContent = 'Verifying...';
+      errEl.style.display = 'none';
+
+      const ok = await verifyToken(token);
+      if (!ok) {
+        errEl.textContent = 'Invalid admin token. Check for extra spaces or the wrong value.';
+        errEl.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Login';
+        return;
+      }
+
+      localStorage.setItem('admin_token', token);
+      currentToken = token;
+      justLoggedIn = true;
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('admin-screen').style.display = 'block';
+      loadReviews('pending');
+    }
+
+    function logout() {
+      localStorage.removeItem('admin_token');
+      currentToken = '';
+      location.reload();
+    }
+    
+    async function loadReviews(status) {
+      currentStatus = status;
+      
+      // Update active tab
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.classList.remove('active');
+        if (tab.textContent.toLowerCase() === status) {
+          tab.classList.add('active');
+        }
+      });
+      
+      try {
+        const res = await fetch(`${API_URL}/api/admin/reviews?status=${status}`, {
+          headers: {
+            'Authorization': `Bearer ${currentToken}`
+          }
+        });
+        
+        if (res.status === 401) {
+          // Don't loop — show login inline instead of reloading
+          localStorage.removeItem('admin_token');
+          currentToken = '';
+          document.getElementById('admin-screen').style.display = 'none';
+          document.getElementById('login-screen').style.display = 'block';
+          const errEl = document.getElementById('login-error');
+          errEl.textContent = 'Session expired. Please log in again.';
+          errEl.style.display = 'block';
+          return;
+        }
+        
+        const data = await res.json();
+        renderReviews(data.reviews);
+      } catch (err) {
+        console.error('Failed to load reviews:', err);
+        alert('Failed to load reviews');
+      }
+    }
+    
+    function renderReviews(reviews) {
+      const container = document.getElementById('reviews-list');
+      
+      if (reviews.length === 0) {
+        container.innerHTML = '<div class="empty-state">No reviews to show</div>';
+        return;
+      }
+      
+      container.innerHTML = reviews.map(review => `
+        <div class="review-card" id="review-${review.id}">
+          <div class="review-header">
+            <div class="review-meta">
+              <span class="review-product">${review.product_title || 'Unknown Product'}</span>
+              <span class="review-stars">${'★'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)}</span>
+              ${review.verified_purchase ? '<span class="review-verified">✓ Verified</span>' : ''}
+            </div>
+            <div class="review-customer">${review.customer_name || 'Anonymous'} • ${new Date(review.created_at).toLocaleDateString()}</div>
+          </div>
+          
+          <div class="review-content">
+            ${review.title ? `<div class="review-title">${review.title}</div>` : ''}
+            ${review.content ? `<div class="review-text">${review.content}</div>` : ''}
+          </div>
+          
+          ${review.photos?.length ? `
+            <div class="review-photos">
+              ${review.photos.map(url => `<img src="${url}" class="review-photo" />`).join('')}
+            </div>
+          ` : ''}
+          
+          ${currentStatus === 'pending' ? `
+            <div class="review-actions">
+              <button class="btn btn-approve" onclick="moderateReview('${review.id}', 'approved')">Approve</button>
+              <button class="btn btn-reject" onclick="moderateReview('${review.id}', 'rejected')">Reject</button>
+            </div>
+          ` : ''}
+        </div>
+      `).join('');
+    }
+    
+    async function moderateReview(reviewId, status) {
+      const card = document.getElementById(`review-${reviewId}`);
+      const buttons = card.querySelectorAll('button');
+      buttons.forEach(btn => btn.disabled = true);
+      
+      try {
+        const res = await fetch(`${API_URL}/api/admin/reviews/${reviewId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${currentToken}`
+          },
+          body: JSON.stringify({ status })
+        });
+        
+        if (res.ok) {
+          card.style.opacity = '0.5';
+          setTimeout(() => {
+            card.remove();
+            if (document.querySelectorAll('.review-card').length === 0) {
+              document.getElementById('reviews-list').innerHTML = '<div class="empty-state">No reviews to show</div>';
+            }
+          }, 500);
+        } else {
+          throw new Error('Failed to moderate review');
+        }
+      } catch (err) {
+        console.error('Moderation error:', err);
+        alert('Failed to moderate review');
+        buttons.forEach(btn => btn.disabled = false);
+      }
+    }
+  </script>
+</body>
+</html>
