@@ -1,3 +1,10 @@
+# 🚨 STOP — READ BEFORE ANY TOOL CALL
+**read_file DOES NOT EXIST. write_file DOES NOT EXIST. edit_file DOES NOT EXIST.**
+**Use exec with shell commands (cat, sed, ls, grep, find) for ALL file operations.**
+**Your only tools: exec, process, session_status + skill tools.**
+
+---
+
 # AGENTS.md - Your Workspace
 
 This folder is home. Treat it that way.
@@ -240,21 +247,3 @@ The goal: Be helpful without being annoying. Check in a few times a day, do usef
 ## Make It Yours
 
 This is a starting point. Add your own conventions, style, and rules as you figure out what works.
-
-## ⚠️ CRITICAL: Tool Usage — DO NOT USE CASCADE/WINDSURF TOOLS
-
-**This runs on OpenClaw, NOT Cascade/Windsurf.** The following tools DO NOT EXIST here:
-- `read_file` — USE `exec` with `cat <path>` instead
-- `write_file` — USE `exec` with `cat > <path> << 'EOF'` instead
-- `edit_file` — USE `exec` with `sed` or write the whole file instead
-- `list_dir` — USE `exec` with `ls` instead
-- `grep_search` — USE `exec` with `grep` or `rg` instead
-- `find_by_name` — USE `exec` with `find` instead
-- `code_search` — USE `exec` with `grep -r` instead
-
-**The ONLY tools available are:** `exec`, `process`, `session_status`
-Plus any tools provided by OpenClaw skills (discord, tavily, etc.)
-
-**If you ever get "Tool X not found" — you are using the wrong tool. Use exec.**
-
-This is non-negotiable. Every session. No exceptions. Read this before your first tool call.
