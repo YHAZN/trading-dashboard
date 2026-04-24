@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/widget.js",
+      "destination": "/api/widget"
+    },
+    {
+      "source": "/api/admin/reviews/:id",
+      "destination": "/api/admin/reviews?id=:id"
+    }
+  ]
+}

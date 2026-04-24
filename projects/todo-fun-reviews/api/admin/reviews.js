@@ -103,7 +103,7 @@ export default async function handler(req, res) {
 
     // PATCH /api/admin/reviews/:id
     if (method === 'PATCH') {
-      const reviewId = req.url.split('/').pop();
+      const reviewId = req.query.id || req.url.split('?')[0].split('/').pop();
       const { status: newStatus } = req.body;
 
       if (!['approved', 'rejected'].includes(newStatus)) {
