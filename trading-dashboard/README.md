@@ -106,3 +106,29 @@ Add environment variables in Vercel dashboard.
 - Supabase (PostgreSQL + Realtime)
 - lightweight-charts (TradingView library)
 - Tailwind CSS
+
+## Planned: Multi-Agent Decision Panel
+
+Based on GreymatterAI asymmetric architecture research:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  AGENT PANEL                          [Last: 15:34:22]  │
+├──────────────┬──────────────┬──────────────┬────────────┤
+│  TECHNICAL   │    MACRO     │  SENTIMENT   │ COMPOSITE  │
+│  BUY 0.72 ✅ │  NEUTRAL 0.4 │  BULLISH 0.6 │   0.62 ✅  │
+│  ORB break   │  Risk-on     │  Positive    │  EXECUTE   │
+└──────────────┴──────────────┴──────────────┴────────────┘
+```
+
+Each agent receives only its own data feed (asymmetric). The composite score must exceed 0.35 to execute a trade.
+
+## Architecture
+
+```
+Kraken WebSocket (ticks)  →  Technical Agent  ─┐
+FRED + Economic calendar  →  Macro Agent      ─┤ → Synthesis → Quality Gate → Execute
+NewsAPI + Fear & Greed    →  Sentiment Agent  ─┘
+```
+
+See `../trading-bot/docs/MULTI_AGENT_ARCHITECTURE.md` for full spec.
